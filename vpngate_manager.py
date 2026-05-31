@@ -7,6 +7,7 @@ import json
 import os
 import queue
 import re
+import secrets
 import select
 import shlex
 import socket
@@ -136,13 +137,12 @@ def read_json(path: Path, default: Any) -> Any:
             return default
 
 import hashlib
-import random
 
 def generate_random_password() -> str:
     import string
     chars = string.ascii_letters + string.digits
     while True:
-        pwd = "".join(random.choices(chars, k=12))
+        pwd = "".join(secrets.choice(chars) for _ in range(12))
         # Ensure it contains at least one lowercase, one uppercase, and one digit
         has_lower = any(c.islower() for c in pwd)
         has_upper = any(c.isupper() for c in pwd)
@@ -154,7 +154,7 @@ def generate_random_username() -> str:
     import string
     chars = string.ascii_letters + string.digits
     while True:
-        uname = "".join(random.choices(chars, k=12))
+        uname = "".join(secrets.choice(chars) for _ in range(12))
         # Ensure it starts with a letter and contains at least one lowercase, one uppercase, and one digit
         if uname[0].isalpha():
             has_lower = any(c.islower() for c in uname)
@@ -163,12 +163,17 @@ def generate_random_username() -> str:
             if has_lower and has_upper and has_digit:
                 return uname
 
+def generate_random_suffix() -> str:
+    import string
+    chars = string.ascii_letters + string.digits
+    return "".join(secrets.choice(chars) for _ in range(12))
+
 def load_ui_config() -> dict[str, Any]:
     with lock:
         auth_file = DATA_DIR / "ui_auth.json"
         config = {
             "username": "",
-            "secret_path": "EJsW2EeBo9lY",
+            "secret_path": "",
             "password": "",
             "host": "::",
             "port": 8787
@@ -188,6 +193,10 @@ def load_ui_config() -> dict[str, Any]:
             
         if not config.get("password"):
             config["password"] = generate_random_password()
+            updated = True
+
+        if not config.get("secret_path"):
+            config["secret_path"] = generate_random_suffix()
             updated = True
             
         if not auth_file.exists() or updated:
@@ -288,7 +297,7 @@ def get_state() -> dict[str, Any]:
     ui_cfg = load_ui_config()
     state["username"] = ui_cfg.get("username", "admin")
     state["port"] = ui_cfg.get("port", 8787)
-    state["secret_path"] = ui_cfg.get("secret_path", "EJsW2EeBo9lY")
+    state["secret_path"] = ui_cfg.get("secret_path", "")
     state["proxy_port"] = ui_cfg.get("proxy_port", 7928)
     state["routing_mode"] = ui_cfg.get("routing_mode", "auto")
     state["force_country"] = ui_cfg.get("force_country", "")
@@ -1631,6 +1640,21 @@ INDEX_HTML = r"""<!doctype html>
       --active-row-border: rgba(16, 185, 129, 0.25);
     }
 
+    html[data-theme="light"] {
+      --bg-dark: #f5f7fb;
+      --bg-surface: rgba(255, 255, 255, 0.82);
+      --bg-surface-hover: rgba(255, 255, 255, 0.96);
+      --border-color: rgba(20, 28, 46, 0.12);
+      --border-color-hover: rgba(79, 70, 229, 0.32);
+      --text-primary: #172033;
+      --text-secondary: #647084;
+      --primary: #4f46e5;
+      --primary-gradient: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+      --primary-hover: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+      --active-row-bg: rgba(16, 185, 129, 0.08);
+      --active-row-border: rgba(16, 185, 129, 0.22);
+    }
+
     body {
       margin: 0;
       font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -1643,6 +1667,13 @@ INDEX_HTML = r"""<!doctype html>
       color: var(--text-primary);
       min-height: 100vh;
       -webkit-font-smoothing: antialiased;
+    }
+
+    html[data-theme="light"] body {
+      background-image:
+        radial-gradient(at 0% 0%, rgba(79, 70, 229, 0.12) 0px, transparent 48%),
+        radial-gradient(at 100% 0%, rgba(16, 185, 129, 0.09) 0px, transparent 44%),
+        radial-gradient(at 50% 100%, rgba(59, 130, 246, 0.08) 0px, transparent 50%);
     }
 
     header {
@@ -1658,6 +1689,10 @@ INDEX_HTML = r"""<!doctype html>
       position: sticky;
       top: 0;
       z-index: 100;
+    }
+
+    html[data-theme="light"] header {
+      background: rgba(255, 255, 255, 0.78);
     }
 
     .brand {
@@ -1750,6 +1785,34 @@ INDEX_HTML = r"""<!doctype html>
     .btn-primary:hover {
       background: var(--primary-hover);
       box-shadow: 0 6px 16px rgba(99, 102, 241, 0.35);
+    }
+
+    .theme-toggle {
+      min-width: 92px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+    }
+
+    .theme-toggle svg {
+      width: 15px;
+      height: 15px;
+      flex-shrink: 0;
+    }
+
+    html[data-theme="light"] button,
+    html[data-theme="light"] .btn-telegram {
+      background: rgba(20, 28, 46, 0.04);
+    }
+
+    html[data-theme="light"] button:hover {
+      background: rgba(20, 28, 46, 0.08);
+      border-color: rgba(20, 28, 46, 0.16);
+    }
+
+    html[data-theme="light"] .btn-primary,
+    html[data-theme="light"] .btn-danger {
+      color: white;
     }
 
     .btn-danger {
@@ -1940,172 +2003,6 @@ INDEX_HTML = r"""<!doctype html>
       min-width: 320px;
       margin-bottom: 0 !important;
     }
-    .vps-promo-tab {
-      position: fixed;
-      right: 0;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 38px;
-      background: var(--primary-gradient);
-      border: 1px solid var(--border-color-hover);
-      border-right: none;
-      border-radius: 8px 0 0 8px;
-      padding: 16px 6px;
-      color: white;
-      font-weight: 700;
-      font-size: 13px;
-      line-height: 1.4;
-      text-align: center;
-      cursor: pointer;
-      z-index: 999;
-      box-shadow: -4px 0 20px rgba(99, 102, 241, 0.3);
-      transition: all 0.3s ease;
-      writing-mode: vertical-rl;
-      text-orientation: mixed;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-    }
-    .vps-promo-tab:hover {
-      padding-right: 10px;
-      box-shadow: -4px 0 25px rgba(99, 102, 241, 0.5);
-    }
-
-    .ad-section {
-      background: var(--bg-surface);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid var(--border-color);
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 24px;
-    }
-    
-    .ad-card {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-    
-    .ad-title {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--text-primary);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    
-    .ad-badge {
-      background: var(--primary-gradient);
-      color: white;
-      font-size: 11px;
-      padding: 3px 8px;
-      border-radius: 6px;
-      font-weight: 700;
-      text-transform: uppercase;
-      box-shadow: 0 2px 6px rgba(99, 102, 241, 0.3);
-    }
-    
-    .ad-links {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 16px;
-    }
-    
-    .ad-item {
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid rgba(255, 255, 255, 0.04);
-      border-radius: 10px;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      justify-content: space-between;
-      transition: all 0.2s ease;
-    }
-    
-    .ad-item:hover {
-      background: rgba(255, 255, 255, 0.04);
-      border-color: var(--border-color-hover);
-      transform: translateY(-2px);
-    }
-    
-    .ad-tag {
-      font-size: 11px;
-      font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 6px;
-      width: fit-content;
-    }
-    
-    .tag-normal {
-      background: rgba(99, 102, 241, 0.15);
-      color: #a5b4fc;
-      border: 1px solid rgba(99, 102, 241, 0.2);
-    }
-    
-    .tag-opt {
-      background: rgba(245, 158, 11, 0.15);
-      color: #fde047;
-      border: 1px solid rgba(245, 158, 11, 0.2);
-    }
-    
-    .tag-premium {
-      background: rgba(16, 185, 129, 0.15);
-      color: #6ee7b7;
-      border: 1px solid rgba(16, 185, 129, 0.2);
-    }
-    
-    .ad-desc {
-      font-size: 13px;
-      color: var(--text-secondary);
-      line-height: 1.5;
-      flex: 1;
-    }
-    
-    .ad-btn {
-      align-self: flex-start;
-      text-decoration: none;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      color: var(--text-primary);
-      font-size: 12px;
-      font-weight: 600;
-      padding: 6px 14px;
-      border-radius: 6px;
-      transition: all 0.2s ease;
-      text-align: center;
-    }
-    
-    .ad-item:hover .ad-btn {
-      background: var(--primary-gradient);
-      border-color: transparent;
-      color: white;
-      box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2);
-    }
-    
-    .ad-footer {
-      border-top: 1px dashed rgba(255, 255, 255, 0.08);
-      padding-top: 12px;
-      font-size: 13px;
-      color: var(--text-secondary);
-      text-align: center;
-    }
-    
-    .forum-link {
-      color: #818cf8;
-      font-weight: 700;
-      text-decoration: none;
-      transition: color 0.2s ease;
-    }
-    
-    .forum-link:hover {
-      color: #a5b4fc;
-      text-decoration: underline;
-    }
-
     .toolbar {
       background: var(--bg-surface);
       backdrop-filter: blur(12px);
@@ -2133,6 +2030,10 @@ INDEX_HTML = r"""<!doctype html>
       outline: none;
       transition: all 0.2s ease;
       cursor: pointer;
+    }
+
+    .toolbar select.filter-compact {
+      width: 150px;
     }
 
     .toolbar select:focus {
@@ -2329,6 +2230,50 @@ INDEX_HTML = r"""<!doctype html>
       cursor: not-allowed;
     }
 
+    .th-filter {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: flex-start;
+      min-width: 104px;
+    }
+
+    .th-filter select {
+      width: 100%;
+      min-width: 94px;
+      height: 30px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-primary);
+      font: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      outline: none;
+      padding: 0 8px;
+      cursor: pointer;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    .th-filter select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.18);
+    }
+
+    .secondary-action-btn {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      box-shadow: none;
+    }
+
+    .secondary-action-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--border-color-hover);
+      box-shadow: 0 6px 16px rgba(99, 102, 241, 0.18);
+    }
+
     .mono {
       font-family: 'JetBrains Mono', Consolas, monospace;
       font-size: 13px;
@@ -2425,6 +2370,15 @@ INDEX_HTML = r"""<!doctype html>
     .dropdown-content a:hover {
       background: rgba(255,255,255,0.08);
     }
+
+    html[data-theme="light"] .dropdown-content {
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 10px 25px rgba(20, 28, 46, 0.14);
+    }
+
+    html[data-theme="light"] .dropdown-content a:hover {
+      background: rgba(20, 28, 46, 0.06);
+    }
     
     /* Modal styles */
     .modal {
@@ -2453,6 +2407,15 @@ INDEX_HTML = r"""<!doctype html>
       position: relative;
       box-sizing: border-box;
       animation: modalFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    html[data-theme="light"] .modal {
+      background-color: rgba(20, 28, 46, 0.28);
+    }
+
+    html[data-theme="light"] .modal-content {
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 20px 50px rgba(20, 28, 46, 0.18);
     }
     @keyframes modalFadeIn {
       from { transform: scale(0.95); opacity: 0; }
@@ -2495,6 +2458,35 @@ INDEX_HTML = r"""<!doctype html>
       background-color: #0f172a;
       color: #f8fafc;
     }
+
+    html[data-theme="light"] .toolbar input,
+    html[data-theme="light"] .toolbar select,
+    html[data-theme="light"] .input-field {
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    html[data-theme="light"] .toolbar input:focus,
+    html[data-theme="light"] .toolbar select:focus,
+    html[data-theme="light"] .input-field:focus {
+      background: rgba(255, 255, 255, 0.96);
+    }
+
+    html[data-theme="light"] th {
+      background: rgba(241, 245, 249, 0.72);
+    }
+
+    html[data-theme="light"] tr:hover {
+      background: rgba(20, 28, 46, 0.035);
+    }
+
+    html[data-theme="light"] .mono {
+      color: #334155;
+    }
+
+    html[data-theme="light"] select option {
+      background-color: #ffffff;
+      color: #172033;
+    }
   </style>
 </head>
 <body>
@@ -2507,6 +2499,10 @@ INDEX_HTML = r"""<!doctype html>
     <div id="status" class="status" style="display: none;"><span class="status-dot"></span>服务加载中...</div>
   </div>
   <div class="btn-group">
+    <button id="theme_toggle" class="theme-toggle" type="button" aria-label="切换亮色或暗色主题">
+      <svg id="theme_icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364-.707-.707M6.343 6.343l-.707-.707m12.728 0-.707.707M6.343 17.657l-.707.707M12 8a4 4 0 100 8 4 4 0 000-8z" /></svg>
+      <span id="theme_label">亮色</span>
+    </button>
     <div class="dropdown">
       <button id="github_btn" class="btn-primary" style="background: rgba(255, 255, 255, 0.08); border: 1px solid var(--border-color); color: var(--text-primary);">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="vertical-align: middle; margin-right: 4px;"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
@@ -2514,14 +2510,9 @@ INDEX_HTML = r"""<!doctype html>
         <svg xmlns="http://www.w3.org/2000/svg" style="width:12px; height:12px; margin-left: 2px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
       </button>
       <div id="github_dropdown" class="dropdown-content">
-        <a href="https://github.com/baoweise-bot/aimili-vpngate" target="_blank">正式版</a>
-        <a href="https://github.com/baoweise-bot/aimili-vpngate/tree/bate" target="_blank">测试版</a>
+        <a href="https://github.com/Pretic/aimili-vpngate-pre" target="_blank" rel="noopener noreferrer">项目仓库</a>
       </div>
     </div>
-    <a href="https://t.me/arestemple" target="_blank" class="btn-telegram">
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style="vertical-align: middle; margin-right: 4px;"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8.287 5.906c-.778.324-2.334.994-4.666 2.01-.378.15-.577.298-.595.442-.03.243.275.339.69.47l.175.055c.408.133.958.288 1.243.294.26.006.549-.1.868-.32 2.179-1.471 3.304-2.214 3.374-2.23.05-.012.12-.026.166.016.047.041.042.12.037.141-.03.129-1.227 1.241-1.846 1.817-.193.18-.33.307-.358.336-.063.065-.129.13-.19.193-.34.347-.597.609-.043.974.265.175.474.319.684.457.228.15.457.301.765.503.074.049.143.098.207.143.297.206.58.404.916.373.195-.018.398-.2.502-.754.25-1.332.74-4.22.842-5.281.01-.088.001-.22-.103-.312-.104-.092-.252-.09-.323-.087a1.52 1.52 0 0 0-.254.04z"/></svg>
-      Telegram
-    </a>
     <button id="refresh" class="btn-primary" style="background: var(--success-gradient);">
       <svg xmlns="http://www.w3.org/2000/svg" style="width:16px; height:16px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18.5" /></svg>
       更新节点
@@ -2573,7 +2564,11 @@ INDEX_HTML = r"""<!doctype html>
     <input id="search" placeholder="输入国家、位置、IP、ASN、运营主体等过滤节点..." />
     <button id="btn_batch_test" class="btn-primary" style="height: 42px; padding: 0 20px; font-weight: 600; background: var(--primary-gradient);">
       <svg xmlns="http://www.w3.org/2000/svg" style="width:16px; height:16px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-      批量测试本页
+      测试本页
+    </button>
+    <button id="btn_test_all" class="secondary-action-btn" style="height: 42px; padding: 0 20px; font-weight: 600;">
+      <svg xmlns="http://www.w3.org/2000/svg" style="width:16px; height:16px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12M8 12h12M8 17h12M4 7h.01M4 12h.01M4 17h.01" /></svg>
+      测试全部
     </button>
   </section>
   <div class="table-wrapper">
@@ -2581,14 +2576,46 @@ INDEX_HTML = r"""<!doctype html>
       <table>
         <thead>
           <tr>
-            <th style="width: 110px;">状态</th>
+            <th style="width: 130px;">
+              <div class="th-filter">
+                <span>状态</span>
+                <select id="status_filter" title="筛选状态">
+                  <option value="">全部状态</option>
+                  <option value="available">可用</option>
+                  <option value="unavailable">不可用</option>
+                  <option value="not_checked">待检测</option>
+                </select>
+              </div>
+            </th>
             <th style="width: 100px;">延迟</th>
             <th style="width: 220px;">IP 地址 : 端口</th>
             <th>物理位置</th>
             <th style="width: 100px;">ASN</th>
             <th>运营主体 / ISP</th>
-            <th style="width: 110px;">网络质量</th>
-            <th style="width: 110px;">IP 类型</th>
+            <th style="width: 140px;">
+              <div class="th-filter">
+                <span>网络质量</span>
+                <select id="quality_filter" title="筛选网络质量">
+                  <option value="">全部质量</option>
+                  <option value="normal">普通</option>
+                  <option value="proxy">代理</option>
+                  <option value="datacenter">数据中心</option>
+                  <option value="mobile">移动端</option>
+                </select>
+              </div>
+            </th>
+            <th style="width: 140px;">
+              <div class="th-filter">
+                <span>IP 类型</span>
+                <select id="ip_type_filter" title="筛选 IP 类型">
+                  <option value="">全部 IP</option>
+                  <option value="residential" selected>住宅 IP</option>
+                  <option value="hosting">机房 IP</option>
+                  <option value="mobile">移动网</option>
+                  <option value="proxy">代理 IP</option>
+                </select>
+              </div>
+            </th>
             <th style="width: 160px;">操作</th>
           </tr>
         </thead>
@@ -2672,7 +2699,7 @@ INDEX_HTML = r"""<!doctype html>
         
         <div class="form-group" style="margin-bottom: 12px;">
           <label class="form-label" for="net_suffix">登录安全后缀 (仅字母和数字)</label>
-          <input type="text" id="net_suffix" class="input-field" required pattern="[A-Za-z0-9]+" placeholder="EJsW2EeBo9lY">
+          <input type="text" id="net_suffix" class="input-field" required pattern="[A-Za-z0-9]+" placeholder="AbC123XyZ789">
         </div>
 
         <div class="form-group" style="margin-bottom: 16px;">
@@ -2710,55 +2737,6 @@ INDEX_HTML = r"""<!doctype html>
     </div>
   </div>
 
-  <!-- Ad Modal (VPS 购买推荐) -->
-  <div id="ad_modal" class="modal">
-    <div class="modal-content" style="max-width: 640px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-        <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
-          <svg xmlns="http://www.w3.org/2000/svg" style="width:20px; height:20px; color: var(--warning);" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364.364l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
-          VPS 购买推荐
-        </h3>
-        <button type="button" onclick="closeAdModal()" style="background: transparent; border: none; padding: 4px; cursor: pointer; color: var(--text-secondary); width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
-          <svg xmlns="http://www.w3.org/2000/svg" style="width:18px; height:18px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-        </button>
-      </div>
-      
-      <div class="ad-links" style="grid-template-columns: 1fr; gap: 16px;">
-        <div class="ad-item">
-          <span class="ad-tag tag-normal">普通用户推荐</span>
-          <span class="ad-desc">RackNerd - 超低折扣价格，日常使用实惠方便，海外多机房可选，推荐普通家庭或低频用户。</span>
-          <a href="https://my.racknerd.com/aff.php?aff=18708" target="_blank" class="ad-btn">点击进入官网</a>
-        </div>
-        <div class="ad-item">
-          <span class="ad-tag tag-opt">网络优化推荐</span>
-          <span class="ad-desc">VMiss - 专线优化网络 (CN2 GIA/9929/CMIN2 等顶级线路)，低延迟不丢包，推荐高网络要求用户。</span>
-          <a href="https://app.vmiss.com/aff.php?aff=4619" target="_blank" class="ad-btn">点击进入官网</a>
-        </div>
-        <div class="ad-item">
-          <span class="ad-tag tag-premium">高端企业推荐</span>
-          <span class="ad-desc">BandwagonHost (搬瓦工) - 直连三网顶级专线，经典高带宽 CN2 GIA 线路，超凡稳定速度。</span>
-          <a href="https://bandwagonhost.com/aff.php?aff=81790" target="_blank" class="ad-btn">点击进入官网</a>
-        </div>
-      </div>
-      
-      <div class="ad-footer" style="margin-top: 20px;">
-        官方技术支持及优质资源交流论坛：<a href="https://339936.xyz" target="_blank" class="forum-link">339936.xyz</a>
-      </div>
-
-      <div class="ad-footer" style="margin-top: 16px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 16px; text-align: left; font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
-        <div style="font-weight: bold; color: var(--text-primary); margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
-          <svg xmlns="http://www.w3.org/2000/svg" style="width:16px; height:16px; color: var(--primary);" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-          🎁 捐赠支持项目开发：
-        </div>
-        <div style="font-family: monospace; background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 6px; margin-top: 6px; word-break: break-all; select-all: true;">
-          <span style="color: var(--primary); font-weight: bold;">BNB (BSC):</span> 0xB6d78c42CEB0687A31B8cfEBE4b51b6eB8953C17<br>
-          <span style="color: var(--primary); font-weight: bold;">TRX (TRC20):</span> TSdzCW6JvsrqcppodYjhSrku4mYmDJ9pxf
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="vps-promo-tab" onclick="openAdModal()">VPS购买推荐</div>
 
   <!-- Gateway Modal (网关自检与代理测试) -->
   <div id="gateway_modal" class="modal">
@@ -2870,7 +2848,8 @@ INDEX_HTML = r"""<!doctype html>
 <script>
 let nodes=[], state={}, testingNodeIds = new Set();
 let currentPage = 1;
-const pageSize = 11;
+const pageSize = 20;
+const bulkTestConcurrency = 5;
 let currentPageNodes = [];
 
 const $=id=>document.getElementById(id);
@@ -2878,6 +2857,35 @@ const esc=s=>String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&
 const base=p=>(p||"").split(/[\\/]/).pop();
 function time(ts){return ts?new Date(ts*1000).toLocaleString():"从未"}
 function speed(v){return v?`${(v*8/1000/1000).toFixed(1)} Mbps`:"-"}
+
+const THEME_STORAGE_KEY = "aimilivpn_theme";
+const themeIcons = {
+  light: '<path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75 9.75 9.75 0 018.25 6c0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25 9.75 9.75 0 0012.75 21a9.753 9.753 0 009.002-5.998z" />',
+  dark: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364-.707-.707M6.343 6.343l-.707-.707m12.728 0-.707.707M6.343 17.657l-.707.707M12 8a4 4 0 100 8 4 4 0 000-8z" />'
+};
+
+function applyTheme(theme) {
+  const nextTheme = theme === "light" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", nextTheme);
+  const label = $("theme_label");
+  const icon = $("theme_icon");
+  if (label) label.textContent = nextTheme === "light" ? "暗色" : "亮色";
+  if (icon) icon.innerHTML = nextTheme === "light" ? themeIcons.light : themeIcons.dark;
+}
+
+function initThemeToggle() {
+  const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+  const systemTheme = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  applyTheme(savedTheme || systemTheme);
+  const toggle = $("theme_toggle");
+  if (!toggle) return;
+  toggle.onclick = () => {
+    const current = document.documentElement.getAttribute("data-theme") || "dark";
+    const nextTheme = current === "light" ? "dark" : "light";
+    applyTheme(nextTheme);
+    localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+  };
+}
 
 const translateQuality = q => {
   const dict = {"normal": "普通", "proxy": "代理", "datacenter": "数据中心", "mobile": "移动端"};
@@ -2995,9 +3003,21 @@ function updateCountryFilter() {
 function getFilteredNodes() {
   const q = $("search").value.toLowerCase();
   const selectedCountry = $("country_filter").value;
+  const selectedStatus = $("status_filter").value;
+  const selectedQuality = $("quality_filter").value;
+  const selectedIpType = $("ip_type_filter").value;
   return nodes.filter(n => {
     if (!n) return false;
     if (selectedCountry && n.country !== selectedCountry) {
+      return false;
+    }
+    if (selectedStatus && (n.status || "not_checked") !== selectedStatus) {
+      return false;
+    }
+    if (selectedQuality && (n.quality || "") !== selectedQuality) {
+      return false;
+    }
+    if (selectedIpType && (n.ip_type || "") !== selectedIpType) {
       return false;
     }
     const searchStr = [
@@ -3108,7 +3128,7 @@ function render(){
   const statusMessage = state.last_check_message || "";
   const activeNodeInfo = activeNode ? `<span class="badge available" style="margin-left:8px; padding:2px 8px;">${esc(translateCountry(activeNode.country))} (${activeNode.id})</span>` : `<span class="badge unavailable" style="margin-left:8px; padding:2px 8px;">无</span>`;
   const localProxy = state.local_proxy || `http://127.0.0.1:${state.proxy_port || 7928}`;
-  if ($("status")) { $("status").innerHTML=`<span class="status-dot"></span>HTTP 代理本地接口：${localProxy} | 活动节点：${activeNodeInfo} | 状态：${statusMessage}`; }
+  if ($("status")) { $("status").innerHTML=`<span class="status-dot"></span>HTTP 代理本地接口：${esc(localProxy)} | 活动节点：${activeNodeInfo} | 状态：${esc(statusMessage)}`; }
   
   // Update proxy test status card based on background checks
   const pBadge = $("proxy_status_badge");
@@ -3350,50 +3370,78 @@ async function disconnectNode(){
   }
 }
 
-// Batch test button implementation
-$("btn_batch_test").onclick = async () => {
-  const pageNodes = currentPageNodes || [];
-  if (pageNodes.length === 0) {
-    alert("当前页面没有可供测试的备选节点");
+async function runNodeTests(targetNodes, button, busyText, idleHtml, concurrency = bulkTestConcurrency) {
+  const queue = targetNodes.filter(n => n && n.id);
+  if (queue.length === 0) {
+    alert("当前筛选条件下没有可供测试的备选节点");
     return;
   }
-  
-  const btn = $("btn_batch_test");
-  btn.disabled = true;
-  btn.innerHTML = `<svg style="animation: spin 1s linear infinite; width: 14px; height: 14px; display: inline-block; margin-right: 6px; vertical-align: middle;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity="0.2" fill="none"></circle><path d="M4 12a8 8 0 018-8" stroke="currentColor" fill="none"></path></svg>测试中...`;
-  
-  pageNodes.forEach(n => testingNodeIds.add(n.id));
+
+  button.disabled = true;
+  button.innerHTML = `<svg style="animation: spin 1s linear infinite; width: 14px; height: 14px; display: inline-block; margin-right: 6px; vertical-align: middle;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity="0.2" fill="none"></circle><path d="M4 12a8 8 0 018-8" stroke="currentColor" fill="none"></path></svg>${busyText}`;
+
+  queue.forEach(n => testingNodeIds.add(n.id));
   render();
-  
-  const testPromises = pageNodes.map(async (n) => {
-    const id = n.id;
-    try {
-      const response = await fetch("./api/test_node", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id })
-      });
-      const result = await response.json();
-      if (result.ok && result.node) {
-        const idx = nodes.findIndex(item => item.id === id);
-        if (idx !== -1) {
-          nodes[idx] = result.node;
+
+  let cursor = 0;
+  let completed = 0;
+  const workerCount = Math.min(concurrency, queue.length);
+  const workers = Array.from({ length: workerCount }, async () => {
+    while (cursor < queue.length) {
+      const node = queue[cursor++];
+      const id = node.id;
+      try {
+        const response = await fetch("./api/test_node", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id })
+        });
+        const result = await response.json();
+        if (result.ok && result.node) {
+          const idx = nodes.findIndex(item => item.id === id);
+          if (idx !== -1) {
+            nodes[idx] = result.node;
+          }
         }
+      } catch (e) {
+      } finally {
+        completed += 1;
+        testingNodeIds.delete(id);
+        if (button) {
+          button.innerHTML = `<svg style="animation: spin 1s linear infinite; width: 14px; height: 14px; display: inline-block; margin-right: 6px; vertical-align: middle;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity="0.2" fill="none"></circle><path d="M4 12a8 8 0 018-8" stroke="currentColor" fill="none"></path></svg>${busyText} ${completed}/${queue.length}`;
+        }
+        render();
       }
-    } catch (e) {
-    } finally {
-      testingNodeIds.delete(id);
-      render();
     }
   });
-  
+
   try {
-    await Promise.all(testPromises);
+    await Promise.all(workers);
   } catch (e) {
   } finally {
-    btn.disabled = false;
-    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" style="width:16px; height:16px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> 批量测试本页`;
+    button.disabled = false;
+    button.innerHTML = idleHtml;
   }
+}
+
+// Batch test button implementation
+$("btn_batch_test").onclick = async () => {
+  await runNodeTests(
+    currentPageNodes || [],
+    $("btn_batch_test"),
+    "测试中...",
+    `<svg xmlns="http://www.w3.org/2000/svg" style="width:16px; height:16px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> 测试本页`
+  );
+};
+
+$("btn_test_all").onclick = async () => {
+  const filteredNodes = getFilteredNodes();
+  await runNodeTests(
+    filteredNodes,
+    $("btn_test_all"),
+    "测试中...",
+    `<svg xmlns="http://www.w3.org/2000/svg" style="width:16px; height:16px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12M8 12h12M8 17h12M4 7h.01M4 12h.01M4 17h.01" /></svg> 测试全部`
+  );
 };
 
 async function load(){
@@ -3413,6 +3461,9 @@ async function load(){
 
 $("search").oninput=()=>{ currentPage = 1; render(); };
 $("country_filter").onchange=()=>{ currentPage = 1; render(); };
+$("status_filter").onchange=()=>{ currentPage = 1; render(); };
+$("quality_filter").onchange=()=>{ currentPage = 1; render(); };
+$("ip_type_filter").onchange=()=>{ currentPage = 1; render(); };
 
 $("refresh").onclick=async()=>{ 
   $("refresh").disabled=true; 
@@ -3726,13 +3777,6 @@ async function saveNetwork(e) {
   }
 }
 
-function openAdModal() {
-  $("ad_modal").style.display = "flex";
-}
-
-function closeAdModal() {
-  $("ad_modal").style.display = "none";
-}
 
 async function logoutAdmin() {
   try {
@@ -3747,6 +3791,7 @@ async function logoutAdmin() {
 }
 
 // 页面加载时自动初始化数据
+initThemeToggle();
 load();
 
 // 每 10 秒在前台空闲时自动更新节点与状态，无需手动刷新页面
@@ -4114,7 +4159,7 @@ def active_node_pinger() -> None:
 class Handler(BaseHTTPRequestHandler):
     def get_secret_path(self) -> str:
         ui_cfg = load_ui_config()
-        return ui_cfg.get("secret_path", "EJsW2EeBo9lY")
+        return ui_cfg.get("secret_path", "")
 
     def is_authorized(self) -> bool:
         ui_cfg = load_ui_config()
@@ -4472,7 +4517,7 @@ class Handler(BaseHTTPRequestHandler):
                 
                 ui_cfg = load_ui_config()
                 expected_port = ui_cfg.get("port", 8787)
-                expected_suffix = ui_cfg.get("secret_path", "EJsW2EeBo9lY")
+                expected_suffix = ui_cfg.get("secret_path", "")
                 expected_proxy_port = ui_cfg.get("proxy_port", 7928)
                 
                 ui_cfg["port"] = new_port_int

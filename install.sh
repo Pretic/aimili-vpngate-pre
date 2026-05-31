@@ -47,9 +47,9 @@ echo -e "${BLUE}        欢迎使用 AimiliVPN 一键源码部署与管理脚本
 echo -e "${BLUE}==========================================================${PLAIN}"
 
 # 3. Configure GitHub Repository URL
-# Default to the official repository (baoweise-bot/aimili-vpngate)
-DEFAULT_USER="baoweise-bot"
-DEFAULT_REPO="aimili-vpngate"
+# Default to this fork.
+DEFAULT_USER="Pretic"
+DEFAULT_REPO="aimili-vpngate-pre"
 
 # Allow custom repository override via command line arguments
 GITHUB_USER="${1:-${DEFAULT_USER}}"
@@ -192,23 +192,23 @@ INSTALL_DIR = "/opt/aimilivpn"
 LOG_FILE = "/opt/aimilivpn/vpngate_data/vpngate.log"
 
 def generate_random_password():
-    import random
+    import secrets
     import string
     chars = string.ascii_letters + string.digits
     while True:
-        pwd = "".join(random.choices(chars, k=12))
+        pwd = "".join(secrets.choice(chars) for _ in range(12))
         if any(c.islower() for c in pwd) and any(c.isupper() for c in pwd) and any(c.isdigit() for c in pwd):
             return pwd
 
 def generate_random_suffix():
-    import random
+    import secrets
     import string
-    return "".join(random.choices(string.ascii_letters + string.digits, k=12))
+    return "".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(12))
 
 def load_ui_cfg():
     import json
     path = "/opt/aimilivpn/vpngate_data/ui_auth.json"
-    cfg = {"host": "::", "port": 8787, "secret_path": "EJsW2EeBo9lY", "password": ""}
+    cfg = {"host": "::", "port": 8787, "secret_path": "", "password": ""}
     if os.path.exists(path):
         try:
             with open(path, "r", encoding="utf-8") as f:
@@ -383,7 +383,7 @@ def print_line(text=""):
 def print_status():
     cfg = load_ui_cfg()
     ui_port = cfg.get("port", 8787)
-    secret_path = cfg.get("secret_path", "EJsW2EeBo9lY")
+    secret_path = cfg.get("secret_path", "")
     proxy_port = cfg.get("proxy_port", 7928)
     state = load_state()
     is_connecting = state.get("is_connecting", False)
@@ -803,7 +803,7 @@ def get_status_state():
     proxy_port = cfg.get("proxy_port", 7928)
     return (
         cfg.get("port", 8787),
-        cfg.get("secret_path", "EJsW2EeBo9lY"),
+        cfg.get("secret_path", ""),
         cfg.get("username", "未配置"),
         cfg.get("password", ""),
         cfg.get("host", "0.0.0.0"),
@@ -962,22 +962,22 @@ if [ ! -f "$AUTH_FILE" ]; then
     # Initialize defaults
     UI_PORT=8787
     # generate random secret suffix (12 chars alphanumeric)
-    SECRET_PATH=$(python3 -c "import random, string; print(''.join(random.choices(string.ascii_letters + string.digits, k=12)))")
+    SECRET_PATH=$(python3 -c "import secrets, string; print(''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(12)))")
     # generate random password
     UI_PASSWORD=$(python3 -c "
-import random, string
+import secrets, string
 chars = string.ascii_letters + string.digits
 while True:
-    pwd = ''.join(random.choices(chars, k=12))
+    pwd = ''.join(secrets.choice(chars) for _ in range(12))
     if any(c.islower() for c in pwd) and any(c.isupper() for c in pwd) and any(c.isdigit() for c in pwd):
         print(pwd)
         break
 ")
     UI_USERNAME=$(python3 -c "
-import random, string
+import secrets, string
 chars = string.ascii_letters + string.digits
 while True:
-    uname = ''.join(random.choices(chars, k=12))
+    uname = ''.join(secrets.choice(chars) for _ in range(12))
     if uname[0].isalpha() and any(c.islower() for c in uname) and any(c.isupper() for c in uname) and any(c.isdigit() for c in uname):
         print(uname)
         break
@@ -1122,13 +1122,13 @@ if [ -z "$ACTIVE_ID" ]; then
     echo -e "  -> ${YELLOW}[加载超时]${PLAIN} 首次节点获取或连接超时，将在后台继续尝试..."
 fi
 
-SECRET_PATH="EJsW2EeBo9lY"
+SECRET_PATH=""
 USERNAME="未配置"
 PASSWORD="未配置"
 UI_PORT=8787
 AUTH_FILE="${INSTALL_DIR}/vpngate_data/ui_auth.json"
 if [ -f "$AUTH_FILE" ]; then
-    SECRET_PATH=$(python3 -c "import json; print(json.load(open('$AUTH_FILE')).get('secret_path', 'EJsW2EeBo9lY'))" 2>/dev/null || echo "EJsW2EeBo9lY")
+    SECRET_PATH=$(python3 -c "import json; print(json.load(open('$AUTH_FILE')).get('secret_path', ''))" 2>/dev/null || echo "")
     USERNAME=$(python3 -c "import json; print(json.load(open('$AUTH_FILE')).get('username', '未配置'))" 2>/dev/null || echo "未配置")
     PASSWORD=$(python3 -c "import json; print(json.load(open('$AUTH_FILE')).get('password', '未配置'))" 2>/dev/null || echo "未配置")
     UI_PORT=$(python3 -c "import json; print(json.load(open('$AUTH_FILE')).get('port', 8787))" 2>/dev/null || echo "8787")

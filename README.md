@@ -9,13 +9,15 @@ Bilingual: [中文](#中文) | [English](#english)
 
 AimiliVPN 是一款基于官方 VPNGate 开放协议的高性能、零依赖 VPN 代理网关。它以纯 Python 标准库编写，内置美观响应式的管理网页，提供智能并发测速、多路由模式、出站代理网关、实时日志等强大功能。
 
-### 📢 官方交流与反馈
-[![Telegram](https://img.shields.io/badge/TG交流群-arestemple-2CA5E0?style=flat-square&logo=telegram&logoColor=white)](https://t.me/arestemple)
-[![Forum](https://img.shields.io/badge/交流论坛-339936.xyz-orange?style=flat-square&logo=discourse&logoColor=white)](https://339936.xyz)
-[![YouTube](https://img.shields.io/badge/视频教程-YouTube-red?style=flat-square&logo=youtube&logoColor=white)](https://www.youtube.com/watch?v=s-ATfXR8BpI)
-[![Email](https://img.shields.io/badge/Bug反馈-yaohunse7@gmail.com-red?style=flat-square&logo=gmail&logoColor=white)](mailto:yaohunse7@gmail.com)
+### 二开功能差异
 
----
+本仓库基于上游项目二次开发，当前主要差异如下：
+
+* 管理页面新增亮色 / 暗色主题切换，并记住用户选择。
+* 节点列表新增状态、网络质量、IP 类型筛选；进入页面默认筛选为住宅 IP。
+* 节点列表每页显示数量调整为 20 条，便于批量浏览。
+* 原批量测试拆分为“测试本页”和“测试全部”；“测试全部”会对当前筛选结果中的全部节点分批测试，并限制并发数量。
+* 首次生成管理账号、密码和安全后缀时使用更适合凭据的随机数生成方式。
 
 ### 🚀 一键极速部署 (支持 Debian/Ubuntu/CentOS/Alpine 等 Linux 系统)
 
@@ -23,12 +25,12 @@ AimiliVPN 是一款基于官方 VPNGate 开放协议的高性能、零依赖 VPN
 
 #### 🌟 正式稳定版本 (main 分支)
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/baoweise-bot/aimili-vpngate/main/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Pretic/aimili-vpngate-pre/main/install.sh)
 ```
 
 #### 🧪 测试开发版本 (bate 分支)
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/baoweise-bot/aimili-vpngate/bate/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Pretic/aimili-vpngate-pre/main/install.sh)
 ```
 
 > 💡 **小贴士**：部署完成后，终端会输出管理网页的专属链接（含随机安全后缀，如 `http://your_vps_ip:8787/u71e9IXp4TPx`）。在终端中输入 `ml` 命令可以随时调出交互式命令行管理菜单。
@@ -116,29 +118,20 @@ bash <(curl -Ls https://raw.githubusercontent.com/baoweise-bot/aimili-vpngate/ba
 
 ---
 
-### 🎁 捐赠支持项目开发
-
-如果您觉得这个项目对您有所帮助，欢迎捐赠支持我们的后续开发与维护：
-
-* **BNB (BSC / BEP20)**: `0xB6d78c42CEB0687A31B8cfEBE4b51b6eB8953C17`
-* **TRX (TRC20)**: `TSdzCW6JvsrqcppodYjhSrku4mYmDJ9pxf`
-
-感谢您的慷慨与支持！❤️
-
----
-
 <a name="english"></a>
 ## English
 
 AimiliVPN is a high-performance, zero-dependency VPN proxy gateway built entirely using Python's standard library. It parses official VPNGate servers, benchmarks latency, and routes traffic through a built-in dual-protocol (HTTP/SOCKS5) proxy server.
 
-### 📢 Community & Feedback
-- **Telegram Group**: [arestemple](https://t.me/arestemple)
-- **Discussion Forum**: [339936.xyz](https://339936.xyz)
-- **Video Tutorial**: [YouTube Guide](https://www.youtube.com/watch?v=s-ATfXR8BpI)
-- **Email Contact**: yaohunse7@gmail.com
+### Fork Differences
 
----
+This fork currently differs from the upstream project in these functional areas:
+
+* The management UI includes a persistent light / dark theme switch.
+* The node table can be filtered by status, network quality, and IP type; residential IP is selected by default.
+* The node table page size is set to 20 rows.
+* Bulk testing is split into "Test Page" and "Test All"; "Test All" tests every node in the current filtered result set with limited concurrency.
+* Initial management usernames, passwords, and URL suffixes use credential-safe random generation.
 
 ### 🚀 One-Click Installation
 
@@ -146,12 +139,12 @@ Run the corresponding command on your Linux VPS as root:
 
 #### 🌟 Stable Release (main branch)
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/baoweise-bot/aimili-vpngate/main/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Pretic/aimili-vpngate-pre/main/install.sh)
 ```
 
 #### 🧪 Beta / Development (bate branch)
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/baoweise-bot/aimili-vpngate/bate/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Pretic/aimili-vpngate-pre/main/install.sh)
 ```
 
 > 💡 **Quick Note**: Once installed, copy the printed URL from the terminal to access the Web UI. Type the `ml` command in the terminal to summon the interactive CLI management console.
@@ -209,14 +202,3 @@ To prevent unauthorized scanning and abuse of the proxy port on the public inter
 #### 3. "API Domain Blocked" / Candidate nodes pool is empty (0 nodes)
 * **Reason**: The official VPNGate domain is blocked or DNS resolution failed on your VPS.
 * **Solution**: Add an HTTP/SOCKS5 upstream proxy in the settings panel (Admin -> Proxy Settings), or configure public DNS in `/etc/resolv.conf` (e.g., `nameserver 8.8.8.8`).
-
----
-
-### 🎁 Donation Support
-
-If you find this project helpful, you can support its development and maintenance via donation:
-
-* **BNB (BSC / BEP20)**: `0xB6d78c42CEB0687A31B8cfEBE4b51b6eB8953C17`
-* **TRX (TRC20)**: `TSdzCW6JvsrqcppodYjhSrku4mYmDJ9pxf`
-
-Thank you for your generosity and support! ❤️
